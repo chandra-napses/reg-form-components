@@ -1,4 +1,4 @@
-// cash-management.jsx
+// src/sections/cash-management.jsx
 var fields = [
   "cashManagementSweep",
   "sweepType",
@@ -25,7 +25,11 @@ function create(React) {
       RadioGroup,
       RadioGroupItem
     } = ui;
-    const { CASH_MANAGEMENT_SWEEPS, SWEEP_TYPES, REDEEM_SEQUENCES } = codeLists;
+    const {
+      CASH_MANAGEMENT_SWEEPS = [],
+      SWEEP_TYPES = [],
+      REDEEM_SEQUENCES = []
+    } = codeLists;
     return /* @__PURE__ */ React.createElement(Card, { id: "cash-management", style: { scrollMarginTop: "9rem" } }, /* @__PURE__ */ React.createElement(CardHeader, { className: "border-b" }, /* @__PURE__ */ React.createElement(CardTitle, { className: "text-base font-semibold tracking-tight" }, "Cash Management")), /* @__PURE__ */ React.createElement(CardContent, { className: "flex flex-col gap-5" }, /* @__PURE__ */ React.createElement(
       SelectField,
       {

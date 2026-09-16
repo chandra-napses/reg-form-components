@@ -1,0 +1,32 @@
+{
+  "version": "v3",
+  "sections": [
+    {
+      "name": "cash-management",
+      "file": "cash-management.js",
+      "fields": [
+        "cashManagementSweep",
+        "sweepType",
+        "redeemSequence",
+        "sweepInstructions"
+      ]
+    },
+    {
+      "name": "suitability",
+      "file": "suitability.js",
+      "fields": [
+        "investmentObjective",
+        "riskTolerance",
+        "timeHorizon",
+        "liquidityNeeds",
+        "investmentExperience",
+        "annualIncome",
+        "netWorth",
+        "liquidNetWorth",
+        "taxBracket",
+        "sourceOfFunds",
+        "suitabilityNotes"
+      ]
+    }
+  ]
+}
