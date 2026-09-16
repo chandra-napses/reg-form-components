@@ -15,17 +15,13 @@
       "name": "suitability",
       "file": "suitability.js",
       "fields": [
-        "investmentObjective",
-        "riskTolerance",
+        "riskExposure",
+        "investmentObjectives",
         "timeHorizon",
         "liquidityNeeds",
-        "investmentExperience",
-        "annualIncome",
-        "netWorth",
-        "liquidNetWorth",
-        "taxBracket",
-        "sourceOfFunds",
-        "suitabilityNotes"
+        "annualExpensesRecurring",
+        "anyOtherInvestmentsIndicator",
+        "additionalInvestments"
       ]
     }
   ]

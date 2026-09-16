@@ -32,6 +32,9 @@ function makeUi() {
     RadioGroup: null, // filled in per-test so props can be captured
     RadioGroupItem: ({ value, id }) =>
       React.createElement('input', { type: 'radio', value, id, readOnly: true }),
+    Separator: () => React.createElement('hr', null),
+    Button: ({ children, onClick, className }) =>
+      React.createElement('button', { type: 'button', onClick, className }, children),
   };
 }
 
@@ -45,23 +48,21 @@ const field = (kind) => ({ path, label, options }) =>
 
 /** Every code list either section reads, with plausible values. */
 const codeLists = {
-  CASH_MANAGEMENT_SWEEPS: ['None', 'Insured Deposit', 'Money Market'],
-  SWEEP_TYPES: ['Automatic', 'Manual'],
-  REDEEM_SEQUENCES: ['First', 'Last'],
+  CASH_MANAGEMENT_SWEEPS: ['DIDVX', 'NOSWP'],
+  SWEEP_TYPES: ['Primary', 'Alternative'],
+  REDEEM_SEQUENCES: ['First', 'Second'],
+  RISK_EXPOSURE_LEVELS: ['Conservative', 'Moderate', 'Aggressive'],
   INVESTMENT_OBJECTIVES: ['Capital Preservation', 'Income', 'Growth', 'Speculation'],
-  RISK_TOLERANCES: ['Conservative', 'Moderate', 'Aggressive'],
-  TIME_HORIZONS: ['Under 3 years', '3-5 years', '6-10 years', 'Over 10 years'],
   LIQUIDITY_NEEDS: ['Low', 'Medium', 'High'],
-  INVESTMENT_EXPERIENCE_LEVELS: ['None', 'Limited', 'Good', 'Extensive'],
-  ANNUAL_INCOME_RANGES: ['Under $50,000', '$50,000-$99,999', '$100,000+'],
-  NET_WORTH_RANGES: ['Under $100,000', '$100,000-$499,999', '$500,000+'],
-  LIQUID_NET_WORTH_RANGES: ['Under $50,000', '$50,000-$249,999', '$250,000+'],
-  TAX_BRACKETS: ['0-15%', '16-25%', '26-35%', 'Over 35%'],
-  SOURCE_OF_FUNDS: ['Salary', 'Inheritance', 'Sale of Business', 'Investments'],
+  ANNUAL_EXPENSE_RANGES: ['Under $50,000', '$50,000-$99,999', '$100,000+'],
+  ADDITIONAL_INVESTMENT_TYPES: ['Real Estate', 'Annuity', 'Other'],
 };
 
 /** Renders one section and returns the markup plus what it did to the form. */
-function mount(createSection, { lists = codeLists, locked = false } = {}) {
+function mount(
+  createSection,
+  { lists = codeLists, locked = false, readOnly = false, watched = {}, rows = [] } = {},
+) {
   const setValueCalls = [];
   const radioGroups = [];
   const ui = makeUi();
@@ -71,20 +72,36 @@ function mount(createSection, { lists = codeLists, locked = false } = {}) {
   };
 
   const Section = createSection(React);
+  const arrayCalls = [];
   const markup = renderToStaticMarkup(
     React.createElement(Section, {
       form: { setValue: (...args) => setValueCalls.push(args) },
-      watch: () => undefined,
+      watch: (path) => watched[path],
       hostErrors: {},
       locked,
+      readOnly,
       ui,
       SelectField: field('select'),
+      DateField: field('date'),
+      MoneyField: field('money'),
       TextAreaField: field('textarea'),
+      RadioYesNoField: field('yesno'),
+      EntryCard: ({ children }) => React.createElement('article', null, children),
+      helpers: {
+        entryHeading: (name, fallback) => ({ title: name || fallback }),
+        entryName: (v) => v ?? '',
+        tomorrowIso: () => '2026-01-01',
+      },
       codeLists: lists,
+      investmentsArray: {
+        fields: rows,
+        append: (v) => arrayCalls.push(['append', v]),
+        remove: (i) => arrayCalls.push(['remove', i]),
+      },
     }),
   );
 
-  return { markup, setValueCalls, radioGroups };
+  return { markup, setValueCalls, radioGroups, arrayCalls };
 }
 
 for (const section of manifest.sections) {
@@ -105,7 +122,12 @@ for (const section of manifest.sections) {
   });
 
   test(`${section.name}: renders every field it declares`, () => {
-    const { markup } = mount(mod.default);
+    // Gates that hide a declared field are opened here; a section must be able
+    // to render everything it claims, not only its default branch.
+    const { markup } = mount(mod.default, {
+      watched: { 'suitability.anyOtherInvestmentsIndicator': 'Yes' },
+      rows: [{ id: 'row-0' }],
+    });
     assert.ok(markup.length > 0);
     for (const name of mod.fields) {
       assert.ok(markup.includes(name), `field \`${name}\` is declared but not rendered`);
@@ -134,10 +156,59 @@ for (const section of manifest.sections) {
   });
 }
 
-test('suitability: risk tolerance follows `locked`', async () => {
+test('suitability: additional investments stay hidden until the gate is Yes', async () => {
   const mod = await import(pathToFileURL(resolve(DIST, 'suitability.js')).href);
-  assert.equal(mount(mod.default, { locked: true }).radioGroups[0].disabled, true);
-  assert.equal(mount(mod.default, { locked: false }).radioGroups[0].disabled, false);
+  const rows = [{ id: 'row-0' }];
+
+  const closed = mount(mod.default, { rows });
+  assert.ok(!closed.markup.includes('additionalInvestments'));
+
+  const open = mount(mod.default, {
+    watched: { 'suitability.anyOtherInvestmentsIndicator': 'Yes' },
+    rows,
+  });
+  assert.ok(open.markup.includes('additionalInvestments.0.investment'));
+  assert.ok(open.markup.includes('additionalInvestments.0.value'));
+});
+
+test('suitability: investment description appears only for Other', async () => {
+  const mod = await import(pathToFileURL(resolve(DIST, 'suitability.js')).href);
+  const base = {
+    watched: { 'suitability.anyOtherInvestmentsIndicator': 'Yes' },
+    rows: [{ id: 'row-0' }],
+  };
+  assert.ok(!mount(mod.default, base).markup.includes('investmentDescription'));
+
+  const other = mount(mod.default, {
+    ...base,
+    watched: {
+      ...base.watched,
+      'suitability.additionalInvestments.0.investment': 'Other',
+    },
+  });
+  assert.ok(other.markup.includes('investmentDescription'));
+});
+
+test('suitability: readOnly hides add and remove', async () => {
+  const mod = await import(pathToFileURL(resolve(DIST, 'suitability.js')).href);
+  const opts = {
+    watched: { 'suitability.anyOtherInvestmentsIndicator': 'Yes' },
+    rows: [{ id: 'row-0' }],
+  };
+  assert.ok(mount(mod.default, opts).markup.includes('Add investment'));
+  assert.ok(
+    !mount(mod.default, { ...opts, readOnly: true }).markup.includes('Add investment'),
+  );
+});
+
+test('suitability: the add button is withheld at the schema maximum', async () => {
+  const mod = await import(pathToFileURL(resolve(DIST, 'suitability.js')).href);
+  const rows = Array.from({ length: 17 }, (_, i) => ({ id: `row-${i}` }));
+  const { markup } = mount(mod.default, {
+    watched: { 'suitability.anyOtherInvestmentsIndicator': 'Yes' },
+    rows,
+  });
+  assert.ok(!markup.includes('Add investment'));
 });
 
 test('cash-management: redeem sequence stays locked regardless of `locked`', async () => {

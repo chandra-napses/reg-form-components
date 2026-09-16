@@ -1,16 +1,12 @@
 // src/sections/suitability.jsx
 var fields = [
-  "investmentObjective",
-  "riskTolerance",
+  "riskExposure",
+  "investmentObjectives",
   "timeHorizon",
   "liquidityNeeds",
-  "investmentExperience",
-  "annualIncome",
-  "netWorth",
-  "liquidNetWorth",
-  "taxBracket",
-  "sourceOfFunds",
-  "suitabilityNotes"
+  "annualExpensesRecurring",
+  "anyOtherInvestmentsIndicator",
+  "additionalInvestments"
 ];
 function create(React) {
   return function Suitability({
@@ -18,77 +14,66 @@ function create(React) {
     watch,
     hostErrors,
     locked,
+    readOnly,
     ui,
     SelectField,
+    DateField,
+    MoneyField,
     TextAreaField,
-    codeLists
+    RadioYesNoField,
+    EntryCard,
+    helpers,
+    codeLists,
+    investmentsArray,
+    maxInvestments = 17
   }) {
     const {
       Card,
       CardHeader,
       CardTitle,
       CardContent,
-      Label,
-      RadioGroup,
-      RadioGroupItem
+      Separator,
+      Button
     } = ui;
     const {
+      RISK_EXPOSURE_LEVELS = [],
       INVESTMENT_OBJECTIVES = [],
-      RISK_TOLERANCES = [],
-      TIME_HORIZONS = [],
       LIQUIDITY_NEEDS = [],
-      INVESTMENT_EXPERIENCE_LEVELS = [],
-      ANNUAL_INCOME_RANGES = [],
-      NET_WORTH_RANGES = [],
-      LIQUID_NET_WORTH_RANGES = [],
-      TAX_BRACKETS = [],
-      SOURCE_OF_FUNDS = []
-    } = codeLists;
-    return /* @__PURE__ */ React.createElement(Card, { id: "suitability", style: { scrollMarginTop: "9rem" } }, /* @__PURE__ */ React.createElement(CardHeader, { className: "border-b" }, /* @__PURE__ */ React.createElement(CardTitle, { className: "text-base font-semibold tracking-tight" }, "Suitability")), /* @__PURE__ */ React.createElement(CardContent, { className: "flex flex-col gap-5" }, /* @__PURE__ */ React.createElement(
+      ANNUAL_EXPENSE_RANGES = [],
+      ADDITIONAL_INVESTMENT_TYPES = []
+    } = codeLists ?? {};
+    const { entryHeading, entryName, tomorrowIso } = helpers ?? {};
+    const anyOtherInvestments = watch("suitability.anyOtherInvestmentsIndicator");
+    const rows = investmentsArray?.fields ?? [];
+    return /* @__PURE__ */ React.createElement(Card, { id: "suitability", style: { scrollMarginTop: "9rem" } }, /* @__PURE__ */ React.createElement(CardHeader, { className: "border-b" }, /* @__PURE__ */ React.createElement(CardTitle, { className: "text-base font-semibold tracking-tight" }, "Suitability")), /* @__PURE__ */ React.createElement(CardContent, { className: "flex flex-col gap-5" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col gap-5" }, /* @__PURE__ */ React.createElement(
       SelectField,
       {
         form,
         hostErrors,
         locked,
-        path: "suitability.investmentObjective",
-        label: "Investment objective",
+        path: "suitability.riskExposure",
+        label: "Risk exposure",
+        options: RISK_EXPOSURE_LEVELS
+      }
+    ), /* @__PURE__ */ React.createElement(
+      SelectField,
+      {
+        form,
+        hostErrors,
+        locked,
+        path: "suitability.investmentObjectives",
+        label: "Investment Objective",
         options: INVESTMENT_OBJECTIVES
       }
-    ), /* @__PURE__ */ React.createElement("div", { className: "flex flex-col gap-2" }, /* @__PURE__ */ React.createElement(Label, null, "Risk tolerance"), /* @__PURE__ */ React.createElement(
-      RadioGroup,
-      {
-        value: watch("suitability.riskTolerance"),
-        onValueChange: (v) => form.setValue("suitability.riskTolerance", v, {
-          shouldDirty: true,
-          shouldTouch: true,
-          shouldValidate: true
-        }),
-        disabled: locked,
-        className: "flex flex-row flex-wrap gap-4"
-      },
-      RISK_TOLERANCES.map((option) => /* @__PURE__ */ React.createElement("div", { key: option, className: "flex items-center gap-2.5" }, /* @__PURE__ */ React.createElement(
-        RadioGroupItem,
-        {
-          value: option,
-          id: `riskTolerance-${option}`
-        }
-      ), /* @__PURE__ */ React.createElement(
-        Label,
-        {
-          htmlFor: `riskTolerance-${option}`,
-          className: "cursor-pointer text-sm font-normal"
-        },
-        option
-      )))
-    )), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 gap-5 sm:grid-cols-2" }, /* @__PURE__ */ React.createElement(
-      SelectField,
+    ), /* @__PURE__ */ React.createElement(
+      DateField,
       {
         form,
         hostErrors,
         locked,
         path: "suitability.timeHorizon",
         label: "Time horizon",
-        options: TIME_HORIZONS
+        min: tomorrowIso ? tomorrowIso() : void 0
       }
     ), /* @__PURE__ */ React.createElement(
       SelectField,
@@ -106,70 +91,79 @@ function create(React) {
         form,
         hostErrors,
         locked,
-        path: "suitability.investmentExperience",
-        label: "Investment experience",
-        options: INVESTMENT_EXPERIENCE_LEVELS
+        path: "suitability.annualExpensesRecurring",
+        label: "Annual expenses (Recurring)",
+        options: ANNUAL_EXPENSE_RANGES
       }
-    ), /* @__PURE__ */ React.createElement(
-      SelectField,
+    )), /* @__PURE__ */ React.createElement(Separator, null), /* @__PURE__ */ React.createElement(
+      RadioYesNoField,
       {
         form,
         hostErrors,
         locked,
-        path: "suitability.sourceOfFunds",
-        label: "Source of funds",
-        options: SOURCE_OF_FUNDS
+        path: "suitability.anyOtherInvestmentsIndicator",
+        label: "Are there any other investments?"
       }
-    )), /* @__PURE__ */ React.createElement("div", { className: "flex flex-col gap-2" }, /* @__PURE__ */ React.createElement(Label, { className: "text-sm font-medium" }, "Financial profile"), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 gap-5 sm:grid-cols-2" }, /* @__PURE__ */ React.createElement(
-      SelectField,
+    ), anyOtherInvestments === "Yes" && /* @__PURE__ */ React.createElement("div", { className: "flex flex-col gap-4" }, rows.map((field, index) => {
+      const investment = watch(
+        `suitability.additionalInvestments.${index}.investment`
+      );
+      return /* @__PURE__ */ React.createElement(
+        EntryCard,
+        {
+          key: field.id,
+          ...entryHeading ? entryHeading(
+            entryName(investment),
+            `Investment ${index + 1}`
+          ) : { title: `Investment ${index + 1}` },
+          onRemove: readOnly ? void 0 : () => investmentsArray.remove(index)
+        },
+        /* @__PURE__ */ React.createElement(
+          SelectField,
+          {
+            form,
+            hostErrors,
+            locked,
+            path: `suitability.additionalInvestments.${index}.investment`,
+            label: "Investment",
+            options: ADDITIONAL_INVESTMENT_TYPES
+          }
+        ),
+        /* @__PURE__ */ React.createElement(
+          MoneyField,
+          {
+            form,
+            hostErrors,
+            locked,
+            path: `suitability.additionalInvestments.${index}.value`,
+            label: "Value"
+          }
+        ),
+        investment === "Other" && /* @__PURE__ */ React.createElement(
+          TextAreaField,
+          {
+            form,
+            hostErrors,
+            locked,
+            path: `suitability.additionalInvestments.${index}.investmentDescription`,
+            label: "Investment description"
+          }
+        )
+      );
+    }), !readOnly && rows.length < maxInvestments && /* @__PURE__ */ React.createElement(
+      Button,
       {
-        form,
-        hostErrors,
-        locked,
-        path: "suitability.annualIncome",
-        label: "Annual income",
-        options: ANNUAL_INCOME_RANGES
-      }
-    ), /* @__PURE__ */ React.createElement(
-      SelectField,
-      {
-        form,
-        hostErrors,
-        locked,
-        path: "suitability.netWorth",
-        label: "Net worth",
-        options: NET_WORTH_RANGES
-      }
-    ), /* @__PURE__ */ React.createElement(
-      SelectField,
-      {
-        form,
-        hostErrors,
-        locked,
-        path: "suitability.liquidNetWorth",
-        label: "Liquid net worth",
-        options: LIQUID_NET_WORTH_RANGES
-      }
-    ), /* @__PURE__ */ React.createElement(
-      SelectField,
-      {
-        form,
-        hostErrors,
-        locked,
-        path: "suitability.taxBracket",
-        label: "Tax bracket",
-        options: TAX_BRACKETS
-      }
-    ))), /* @__PURE__ */ React.createElement(
-      TextAreaField,
-      {
-        form,
-        hostErrors,
-        locked,
-        path: "suitability.suitabilityNotes",
-        label: "Suitability notes"
-      }
-    )));
+        type: "button",
+        variant: "outline",
+        className: "w-fit",
+        onClick: () => investmentsArray.append({
+          investment: "",
+          investmentDescription: "",
+          value: void 0
+        })
+      },
+      "Add investment"
+    ))));
   };
 }
 export {

@@ -33,8 +33,13 @@ Both rules are load-bearing, and the build is configured to preserve them:
 1. **No imports.** The published form bundle resolves bare specifiers through a
    host-populated registry a separately-imported module cannot reach, so any
    import here would hit the browser's own resolver and throw. Every dependency
-   arrives as an argument — `ui`, `SelectField`, `TextAreaField`, `codeLists`,
-   `form`, `watch`, `hostErrors`, `locked`.
+   arrives as an argument — `ui`, `codeLists`, `form`, `watch`, `hostErrors`,
+   `locked`, and whichever field primitives the section renders (`SelectField`,
+   `TextAreaField`, `DateField`, `MoneyField`, `RadioYesNoField`, `EntryCard`).
+
+   A section backed by a `useFieldArray` takes the array in too. Hooks have to
+   run inside the form's own React, so the form creates the array and passes the
+   result — `suitability` renders `investmentsArray`, it does not own it.
 2. **The default export is `create(React)`, not a component.** Built with the
    classic JSX transform so `React.createElement` binds to that parameter
    instead of a global that may not be set when the module evaluates.
@@ -51,7 +56,7 @@ and checks that every declared field actually appears.
 | Section | Card id | Code lists it reads |
 | --- | --- | --- |
 | `cash-management` | `cash-management` | `CASH_MANAGEMENT_SWEEPS`, `SWEEP_TYPES`, `REDEEM_SEQUENCES` |
-| `suitability` | `suitability` | `INVESTMENT_OBJECTIVES`, `RISK_TOLERANCES`, `TIME_HORIZONS`, `LIQUIDITY_NEEDS`, `INVESTMENT_EXPERIENCE_LEVELS`, `ANNUAL_INCOME_RANGES`, `NET_WORTH_RANGES`, `LIQUID_NET_WORTH_RANGES`, `TAX_BRACKETS`, `SOURCE_OF_FUNDS` |
+| `suitability` | `suitability` | `RISK_EXPOSURE_LEVELS`, `INVESTMENT_OBJECTIVES`, `LIQUIDITY_NEEDS`, `ANNUAL_EXPENSE_RANGES`, `ADDITIONAL_INVESTMENT_TYPES` |
 
 Every code list defaults to an empty array, so a host that has not published one
 yet renders an empty control instead of throwing during render.
